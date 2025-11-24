@@ -1,3 +1,4 @@
+import os
 import random
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -151,7 +152,8 @@ def game_screen(size: int, bot: bool) -> None:
 
 def read_stats() -> tuple[int, int]:
     try:
-        with open("stats.txt", 'r', encoding='utf-8') as file:
+        os.makedirs("data", exist_ok=True)
+        with open("data/stats.txt", 'r', encoding='utf-8') as file:
             res = tuple(map(int, file.readline().replace("\n", "").split("|")))
             return res if len(res) == 2 else (0, 0)
     except Exception:
@@ -160,7 +162,7 @@ def read_stats() -> tuple[int, int]:
 
 def update_stats(games: int, bot_games: int) -> None:
     stats = read_stats()
-    with open("stats.txt", 'w', encoding='utf-8') as file:
+    with open("data/stats.txt", 'w', encoding='utf-8') as file:
         file.write(f"{stats[0] + games}|{stats[1] + bot_games}")
 
 
