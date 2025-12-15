@@ -70,10 +70,10 @@ class GameBoard:
         print("  ┗" + "┻".join(["━━━"] * self.size) + "┛")
 
     def __is_win(self, x: int, y: int, player: Figure) -> bool:
-        # |
+        # -
         if all(self.__board[x][i] == player for i in range(self.size)):
             return True
-        # -
+        # |
         if all(self.__board[i][y] == player for i in range(self.size)):
             return True
         # \
