@@ -9,8 +9,10 @@ salary: dict[str, int] = {"Разработчик": 120_000, "Менеджер":
 def task_2() -> None:
     with (open("t2/csv_file.csv", 'r', encoding='utf-8', newline='') as original_file,
           open("t2/employees_with_salary.csv", 'w', encoding='utf-8', newline='') as new_file):
-        r = csv.DictReader(original_file); w = csv.DictWriter(new_file, fieldnames=r.fieldnames + ['Зарплата'])
-        w.writerows({**row, 'Зарплата': salary.get(row['Должность'], 0)} for row in r)
+        reader = csv.DictReader(original_file)
+        writer = csv.DictWriter(new_file, fieldnames=reader.fieldnames + ['Зарплата'])
+        writer.writeheader()
+        writer.writerows({**row, 'Зарплата': salary.get(row['Должность'], 0)} for row in reader)
 
 task_1() # 1.5
 task_2() # 2.2
