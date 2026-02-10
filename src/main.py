@@ -27,8 +27,15 @@ class Book:
     def __str__(self):
         return f"{self._title} ({self._author}) - {self._status.value}"
 
-    def to_file_str(self) -> str:
-        return f"{self._title}|{self._author}|{self._status.value}"
+    def to_file_str(self, lib) -> str:
+        user = None
+        index = None
+        for i, u in enumerate(lib.users):
+            if u.has_book(self):
+                user = u
+                index = i
+
+        return f"{self._title}|{self._author}|{self._status.value}|{index if user else 0}"
 
 class LibraryRole(Enum):
     ADMIN = 1
@@ -37,19 +44,63 @@ class LibraryRole(Enum):
 class Library:
     def __init__(self, p="data"):
         self._path = Path(p)
-        self._path.mkdir(exist_ok=True)
-        self.books = [Book("Book1", "Author1"), Book("Book2", "Author2")]
-        self.users = [User("User1")]
-        self.staff = [Librarian("Admin")]
+        self.books = []
+        self.users = []
+        self.staff = []
 
-        # TODO data load
+        self._load_data()
+
+        if not self.books:
+            self.books = [Book("Book1", "Author1"), Book("Book2", "Author2")]
+        if not self.users:
+            self.users = [User("User1")]
+        if not self.staff:
+            self.staff = [Librarian("Admin")]
+
+    def _load_data(self):
+        self._path.mkdir(exist_ok=True)
+
+        users_file = self._path / "users.txt"
+        if users_file.exists():
+            self.users = []
+            for line in users_file.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    self.users.append(User(line.strip()))
+
+        staff_file = self._path / "staff.txt"
+        if staff_file.exists():
+            self.staff = []
+            for line in staff_file.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    self.staff.append(Librarian(line.strip()))
+
+        books_file = self._path / "books.txt"
+        if books_file.exists():
+            self.books = []
+            for line in books_file.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    parts = line.split("|")
+                    if len(parts) == 4:
+                        title, author, status_str, user_id = parts
+                        status = BookStatus.IN_INVENTORY if status_str == BookStatus.IN_INVENTORY.value else BookStatus.AVAILABLE
+                        book = Book(title, author, status)
+                        self.books.append(book)
+                        if user_id != "0":
+                            self.users[int(user_id)].add_book(book)
 
     def auth(self, role: LibraryRole, name: str):
         pool = self.staff if role == LibraryRole.ADMIN else self.users
         return next((p for p in pool if p.name.lower() == name.lower()), None)
 
     def save(self):
-        # TODO data save
+        books_data = "\n".join(book.to_file_str(self) for book in self.books)
+        (self._path / "books.txt").write_text(books_data, encoding="utf-8")
+
+        users_data = "\n".join(user.name for user in self.users)
+        (self._path / "users.txt").write_text(users_data, encoding="utf-8")
+
+        staff_data = "\n".join(staff.name for staff in self.staff)
+        (self._path / "staff.txt").write_text(staff_data, encoding="utf-8")
         pass
 
 class Person(ABC):
@@ -74,6 +125,12 @@ class User(Person):
             self._books.remove(book)
         except ValueError:
             pass
+
+    def has_book(self, book):
+        return book in self._books
+
+    def add_book(self, book):
+        self._books.append(book)
 
     def menu(self, lib):
         print("МЕНЮ ПОЛЬЗОВАТЕЛЯ\n 1-Доступные\n 2-Взять\n 3-Вернуть\n 4-Мои\n 0-Выход")
@@ -104,10 +161,6 @@ class User(Person):
                 case "4":
                     [print(f"- {t}") for t in self._books] or print("Ничего нет")
 
-    def to_file_str(self) -> str:
-        # TODO books
-        return f"{self.name}"
-
 class Librarian(Person):
     def __init__(self, name: str):
         super().__init__(name)
@@ -133,15 +186,12 @@ class Librarian(Person):
                         print("Не найдена")
                 case "3":
                     name = input("Имя: ")
-                    lib.users.append(Librarian(name))
+                    lib.users.append(User(name))
                     print("OK")
                 case "4":
                     [print(f"- {u.name}") for u in lib.users] or print("Нет пользователей")
                 case "5":
                     [print(f"{i}. {b}") for i, b in enumerate(lib.books, 1)] or print("Нет книг")
-
-    def to_file_str(self) -> str:
-        return f"{self.name}"
 
 
 def main():
